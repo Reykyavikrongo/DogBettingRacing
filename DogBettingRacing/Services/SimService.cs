@@ -21,7 +21,7 @@ namespace DogBettingRacing.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _scopeFactory=scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
             _httpClient=httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-            TickInterval = TimeSpan.FromSeconds(10);
+            TickInterval = TimeSpan.FromSeconds(1);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -47,6 +47,7 @@ namespace DogBettingRacing.Services
 
         private async Task EnsureScheduledRounds(AppDbContext context)
         {
+            _logger.LogInformation("EnsureScheduledRounds");
             using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
@@ -81,12 +82,9 @@ namespace DogBettingRacing.Services
                     }
 
                     await context.SaveChangesAsync();
-                    await transaction.CommitAsync();
 
                     _logger.LogInformation("New round created with 5 dogs assigned to it.");
                 }
-
-
                 await transaction.CommitAsync();
 
             }
@@ -113,6 +111,7 @@ namespace DogBettingRacing.Services
 
         private async Task GenerateOddsAndResults(AppDbContext context)
         {
+            _logger.LogInformation("GenerateOddsAndResults called");
             try
             {
                 var roundsStartingSoon = await context.Rounds
@@ -127,7 +126,6 @@ namespace DogBettingRacing.Services
                         dog.Odds = GenerateRandomOdds();
                     }
 
-                    // Determine race results by selecting a winner
                     var winningDog = round.Dogs.OrderBy(_ => Guid.NewGuid()).FirstOrDefault();
                     if (winningDog != null)
                     {
@@ -138,7 +136,6 @@ namespace DogBettingRacing.Services
                     round.Status = "Ended";
                     n_ofScheduledRounds -= 1;
 
-                    // Process bets and calculate winnings
                     await ProcessBets(context, round);
                 }
             }
@@ -159,13 +156,13 @@ namespace DogBettingRacing.Services
 
         private decimal GenerateRandomOdds()
         {
-            // Generate random odds between 1.1 and 5.0
             Random rand = new Random();
             return Math.Round((decimal)(rand.NextDouble() * (5.0 - 1.1) + 1.1), 2);
         }
 
         private async Task ProcessBets(AppDbContext context, Round round)
         {
+            _logger.LogInformation("ProcessBets called");
             try
             {
                 var winningBets = await context.Bets
@@ -173,13 +170,11 @@ namespace DogBettingRacing.Services
                 .Where(b => b.Dog.RoundId == round.RoundId && b.DogId == round.WinningDogId && b.Status == "Pending")
                 .ToListAsync();
 
-
                 foreach (var bet in winningBets)
                 {
                     var dog = round.Dogs.FirstOrDefault(d => d.DogId == bet.DogId);
                     if (dog != null)
                     {
-                        // Calculate winnings based on odds
                         bet.Payout = bet.Amount * dog.Odds;
                         bet.Status = "Won";
                         var user = await context.Users.FindAsync(bet.UserId);
@@ -199,6 +194,7 @@ namespace DogBettingRacing.Services
                 foreach (var bet in losingBets)
                 {
                     bet.Status = "Lost";
+                    _logger.LogInformation($"bet {bet.BetId} Lost.");
                 }
                 await context.SaveChangesAsync();
 

@@ -22,9 +22,14 @@ namespace DogBettingRacing.Services
                 var users = await _context.Users.ToListAsync();
                 var dogs = await _context.Dogs.Include(d=>d.Round).Where(d => d.Round.Status == "Scheduled").ToListAsync();
 
-                if (!users.Any() || !dogs.Any())
+                if (!dogs.Any())
                 {
-                    _logger.LogWarning("No available users or open rounds to place a bet.");
+                    _logger.LogWarning("No dogs to place a bet.");
+                    return false;
+                }
+                if (!users.Any())
+                {
+                    _logger.LogWarning("No users to place a bet.");
                     return false;
                 }
 
