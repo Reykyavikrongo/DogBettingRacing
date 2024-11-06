@@ -30,13 +30,6 @@ using (var scope = app.Services.CreateScope())
     var betService = scope.ServiceProvider.GetService<BetService>();
 }
 
-/*
-using (var scope = app.Services.CreateScope())
-{
-    var simulationService = scope.ServiceProvider.GetRequiredService<SimulationService>();
-    var bettingService = scope.ServiceProvider.GetRequiredService<BettingService>();
-}
-*/
 if (app.Environment.IsDevelopment())
 {
     //app.UseSwagger();
