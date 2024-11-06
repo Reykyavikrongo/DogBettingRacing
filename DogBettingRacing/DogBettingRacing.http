@@ -1,0 +1,6 @@
+@DogBettingRacing_HostAddress = http://localhost:5262
+
+GET {{DogBettingRacing_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
